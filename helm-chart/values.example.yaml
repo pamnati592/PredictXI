@@ -1,0 +1,41 @@
+replicaCount:
+  frontend: 1
+  backend: 1
+
+images:
+  frontend: predictxi-frontend:latest
+  backend: predictxi-backend:latest
+  postgres: postgres:15
+
+service:
+  frontendType: LoadBalancer
+  backendType: NodePort
+  backendNodePort: 30080
+
+database:
+  name: football_analytics
+  user: postgres
+  host: postgres
+
+secret:
+  # סיסמה למסד הנתונים — בחר סיסמה חזקה
+  postgresPassword: "your_strong_db_password"
+
+  # מפתח להצפנת JWT tokens — השתמש ב: openssl rand -base64 32
+  jwtSecret: "your_random_jwt_secret"
+
+  # Football Data API — https://www.football-data.org
+  footballApiKey: "your_football_api_key"
+
+  # Groq AI API — https://console.groq.com
+  groqApiKey: "your_groq_api_key"
+
+  # Google OAuth — https://console.cloud.google.com
+  googleClientId: "your_google_client_id.apps.googleusercontent.com"
+  googleClientSecret: "your_google_client_secret"
+
+frontendUrl: "http://localhost"
+googleCallbackUrl: "http://localhost/api/auth/google/callback"
+
+storage:
+  postgresSize: 1Gi

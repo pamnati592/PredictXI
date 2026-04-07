@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  DB_HOST: "{{ .Release.Name }}-postgres"
+  DB_NAME: {{ .Values.database.name | quote }}
+  DB_USER: {{ .Values.database.user | quote }}
+  DB_PORT: "5432"
+  PORT: "8000"
+  FRONTEND_URL: {{ .Values.frontendUrl | quote }}
+  GOOGLE_CALLBACK_URL: {{ .Values.googleCallbackUrl | quote }}
