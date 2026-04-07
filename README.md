@@ -23,17 +23,6 @@ AI-powered football match prediction platform deployed on Kubernetes.
 | Auth | JWT + Google OAuth 2.0 |
 | Infrastructure | Kubernetes (Docker Desktop) + Helm |
 
-## Prediction Model
-
-The prediction engine uses a multi-layer statistical approach:
-
-1. **Dixon-Coles xG** — attack × defense / league_avg with time decay `φ(t) = e^(-0.0065t)`
-2. **Competition quality weights** — Premier League = 1.0, Israeli league = 0.52, Champions League = 1.10
-3. **Home advantage** — +0.35 xG, scaled by quality gap between teams
-4. **Momentum** — last 5 matches weighted higher than overall form
-5. **H2H blend** — up to 40% weight from head-to-head history
-6. **AI adjustment** — Groq LLM reviews all stats and can adjust ±15%
-
 ## Quick Start
 
 ### Prerequisites
@@ -69,8 +58,14 @@ docker build -t predictxi-frontend:latest ./frontend
 
 ### 3. Deploy with Helm
 
+**Option A — from local chart:**
 ```bash
 helm install predictxi ./helm-chart -f helm-chart/values.yaml
+```
+
+**Option B — from GHCR (no clone needed):**
+```bash
+helm install predictxi oci://ghcr.io/pamnati592/predictxi --version 0.1.0 -f values.yaml
 ```
 
 ### 4. Access
