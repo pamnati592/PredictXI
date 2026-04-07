@@ -2,103 +2,34 @@
 // φ(t) = exp(-ξ * days_ago) — recent matches get weight ~1.0, 3-month-old match ~0.55
 const DECAY_XI = 0.0065;
 
-// Competition quality coefficients — derived from official UEFA Country Coefficients 2025/26
-// Source: soccer365.net/ranking/uefa/ (all 55 UEFA associations)
-// Formula: country_points / england_points (115.630), clamped to [0.30, 1.10]
-// UEFA European competitions get a bonus as they feature elite clubs across leagues.
-// Non-UEFA competitions (Copa Libertadores etc.) estimated from FIFA rankings.
+// Competition quality coefficients — based on official UEFA Country Coefficients 2025/26
+// Source: soccer365.net/ranking/uefa/
+// Formula: country_points / england_points (115.630)
+// Only leagues available via football-data.org API + UEFA club competitions are listed.
+// Teams play in these competitions too (CL/EL/ECL) so their form data may include those matches.
 const COMPETITION_QUALITY = {
-  // ── UEFA European competitions (cross-league elite) ──────────────────────
-  'UEFA Champions League':          1.10,
+  // ── Leagues available in football-data.org API ───────────────────────────
+  'Premier League':                 1.00,  // England   115.630 (rank 1)
+  'Championship':                   0.70,  // England second tier (estimated ~70% of PL)
+  'Serie A':                        0.86,  // Italy      99.660 (rank 2)
+  'La Liga':                        0.82,  // Spain      95.234 (rank 3)
+  'Bundesliga':                     0.78,  // Germany    90.545 (rank 4)
+  'Ligue 1':                        0.71,  // France     81.569 (rank 5)
+  'Primeira Liga':                  0.62,  // Portugal   71.566 (rank 6)
+  'Eredivisie':                     0.59,  // Netherlands 67.762 (rank 7)
+  'Brasileirão Série A':            0.65,  // Brazil — CONMEBOL, estimated
+  'Copa Libertadores':              0.72,  // CONMEBOL elite, estimated
+
+  // ── UEFA club competitions (teams from above leagues participate) ─────────
+  'UEFA Champions League':          1.10,  // Best clubs from top leagues
   'Champions League':               1.10,
   'UEFA Europa League':             0.95,
   'Europa League':                  0.95,
   'UEFA Conference League':         0.82,
   'Conference League':              0.82,
 
-  // ── Rank 1-5: Big Five (coefficient / 115.630) ───────────────────────────
-  'Premier League':                 1.00,  // England  115.630
-  'Championship':                   0.75,  // England second tier (estimated)
-  'Serie A':                        0.86,  // Italy     99.660
-  'La Liga':                        0.82,  // Spain     95.234
-  'Bundesliga':                     0.78,  // Germany   90.545
-  '2. Bundesliga':                  0.55,  // Germany second tier
-  'Ligue 1':                        0.71,  // France    81.569
-
-  // ── Rank 6-10 ────────────────────────────────────────────────────────────
-  'Primeira Liga':                  0.62,  // Portugal  71.566
-  'Eredivisie':                     0.59,  // Netherlands 67.762
-  'Belgian Pro League':             0.54,  // Belgium   62.250
-  'Süper Lig':                      0.45,  // Türkiye   51.875
-  'Czech First League':             0.42,  // Czech Rep 48.525
-
-  // ── Rank 11-20 ───────────────────────────────────────────────────────────
-  'Super League Greece':            0.42,  // Greece    48.012
-  'Ekstraklasa':                    0.40,  // Poland    46.750
-  'Superligaen':                    0.36,  // Denmark   42.106
-  'Eliteserien':                    0.36,  // Norway    41.237
-  'First Division Cyprus':          0.31,  // Cyprus    35.693
-  'Swiss Super League':             0.30,  // Switzerland 34.700
-  'Austrian Bundesliga':            0.29,  // Austria   33.850
-  'Scottish Premiership':           0.28,  // Scotland  32.050
-  'Allsvenskan':                    0.26,  // Sweden    29.625
-  'HNL':                            0.24,  // Croatia   28.156
-
-  // ── Rank 21-30 ───────────────────────────────────────────────────────────
-  'Israeli Premier League':         0.24,  // Israel    27.500
-  'Ligat Ha\'Al':                   0.24,  // Israel (alt name)
-  'OTP Bank Liga':                  0.24,  // Hungary   27.187
-  'SuperLiga':                      0.22,  // Serbia    25.750
-  'Liga I':                         0.22,  // Romania   25.250
-  'Ukrainian Premier League':       0.22,  // Ukraine   25.037
-  'PrvaLiga':                       0.21,  // Slovenia  24.468
-  'Premyer Liqa':                   0.20,  // Azerbaijan 22.937
-  'Fortuna liga':                   0.19,  // Slovakia  22.375
-  'efbet Liga':                     0.18,  // Bulgaria  21.062
-
-  // ── Rank 31-40 ───────────────────────────────────────────────────────────
-  'League of Ireland':              0.16,  // Ireland   18.759
-  'Russian Premier League':         0.16,  // Russia    18.299 (suspended from UEFA)
-  'Úrvalsdeild':                    0.14,  // Iceland   16.520
-  'Armenian Premier League':        0.13,  // Armenia   15.062
-  'Moldovan National Division':     0.13,  // Moldova   14.625
-  'Veikkausliiga':                  0.12,  // Finland   14.000
-  'Kosovo Superleague':             0.12,  // Kosovo    13.989
-  'Kazakhstan Premier League':      0.12,  // Kazakhstan 13.750
-  'Premier League BiH':             0.12,  // Bosnia    13.718
-  'Virsliga':                       0.11,  // Latvia    12.875
-
-  // ── Rank 41-55 ───────────────────────────────────────────────────────────
-  'Faroe Islands Premier League':   0.08,  // Faroe Isl  9.750
-  'Maltese Premier League':         0.08,  // Malta      9.000
-  'FL1':                            0.07,  // Liechtenstein 8.500
-  'Meistriliiga':                   0.07,  // Estonia    8.207
-  'Kategoria Superiore':            0.07,  // Albania    8.125
-  'Macedonian First League':        0.07,  // N.Macedonia 7.759
-  'A Lyga':                         0.07,  // Lithuania  7.750
-  'NIFL Premiership':               0.06,  // N.Ireland  7.250
-  'Gibraltar Premier Division':     0.06,  // Gibraltar  7.124
-  'Primera Divisió':                0.06,  // Andorra    6.832
-  'Belarusian Premier League':      0.06,  // Belarus    6.625
-  'National Division Luxembourg':   0.06,  // Luxembourg 6.625
-  'Prva Crnogorska Liga':           0.06,  // Montenegro 6.583
-  'Erovnuli Liga':                  0.05,  // Georgia    6.000
-  'Cymru Premier':                  0.05,  // Wales      5.624
-  'Campionato Sammarinese':         0.02,  // San Marino 2.831
-
-  // ── Non-UEFA (estimated from FIFA/CONMEBOL rankings) ─────────────────────
-  'Brasileirão Série A':            0.65,
-  'Copa Libertadores':              0.72,
-  'Argentine Primera División':     0.60,
-  'MLS':                            0.50,
-  'Liga MX':                        0.55,
-  'Saudi Pro League':               0.45,
-  'J1 League':                      0.45,
-  'K League 1':                     0.40,
-  'A-League':                       0.35,
-
-  // ── Default for unknown competitions ─────────────────────────────────────
-  '_default': 0.45,
+  // ── Default for any other competition not listed ──────────────────────────
+  '_default': 0.60,
 };
 
 function competitionQuality(competitionName) {
