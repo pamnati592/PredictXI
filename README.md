@@ -32,8 +32,8 @@ AI-powered football match prediction platform deployed on Kubernetes.
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/pamnati592/k8s-finalProject.git
-cd k8s-finalProject
+git clone https://github.com/pamnati592/PredictXI.git
+cd PredictXI
 cp helm-chart/values.example.yaml helm-chart/values.yaml
 ```
 
@@ -42,11 +42,11 @@ Edit `helm-chart/values.yaml` with your secrets:
 ```yaml
 secret:
   postgresPassword: "your_strong_password"
-  jwtSecret: "$(openssl rand -base64 32)"
-  footballApiKey: "your_key_from_football-data.org"
-  groqApiKey: "your_key_from_console.groq.com"
-  googleClientId: "your_google_client_id"       # optional
-  googleClientSecret: "your_google_client_secret" # optional
+  jwtSecret: "your_jwt_secret"        # generate: openssl rand -base64 32
+  footballApiKey: "your_key"           # from football-data.org
+  groqApiKey: "your_key"              # from console.groq.com
+  googleClientId: "your_client_id"    # optional — Google OAuth
+  googleClientSecret: "your_secret"   # optional — Google OAuth
 ```
 
 ### 2. Build Docker images
@@ -58,13 +58,24 @@ docker build -t predictxi-frontend:latest ./frontend
 
 ### 3. Deploy with Helm
 
-**Option A — from local chart:**
+**Option A — from local chart (after clone):**
 ```bash
 helm install predictxi ./helm-chart -f helm-chart/values.yaml
 ```
 
-**Option B — from GHCR (no clone needed):**
+**Option B — Helm chart from GHCR (no clone needed):**
 ```bash
+# 1. Download the values template
+curl -O https://raw.githubusercontent.com/pamnati592/PredictXI/main/helm-chart/values.example.yaml
+mv values.example.yaml values.yaml
+
+# 2. Fill in your secrets in values.yaml
+
+# 3. Build Docker images (still required)
+docker build -t predictxi-backend:latest https://github.com/pamnati592/PredictXI.git#main:backend
+docker build -t predictxi-frontend:latest https://github.com/pamnati592/PredictXI.git#main:frontend
+
+# 4. Install from GHCR
 helm install predictxi oci://ghcr.io/pamnati592/predictxi --version 0.1.0 -f values.yaml
 ```
 
@@ -97,9 +108,9 @@ http://localhost
 PredictXI/
 ├── frontend/          # React + TypeScript
 │   ├── src/app/
-│   │   ├── pages/     # Home, Login, Register, LeagueTable, TeamDetail, MatchAnalysis
+│   │   ├── pages/     # Home, Login, Register, LeagueTable, MatchAnalysis
 │   │   ├── services/  # Axios API client
-│   │   └── context/   # AuthContext
+│   │   └── context/   # AuthContext (JWT)
 │   ├── nginx.conf
 │   └── Dockerfile
 ├── backend/           # Node.js + Express
